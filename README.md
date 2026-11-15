@@ -144,7 +144,27 @@ At a high level, the completed application will follow this workflow:
 
 ## Current Project Status
 
-This repository currently contains the **draft smart contract design**. Contract interfaces, core data structures, function signatures, high-level implementation, deployment setup, and starter tests are included. Frontend integration and public test-network deployment are planned for later project stages.
+**Implemented**
+
+- `CredentialRegistry` smart contract (issuer management, registration, revocation, validity checks, events)
+- Hardhat unit tests (9 passing) covering authorization, tamper detection, duplicates, revocation rights and deauthorization
+- Local deployment script, which also exports the address and ABI to `frontend/deployment.json`
+- End-to-end CLI demo: `npm run demo`
+- Web demo frontend (`frontend/index.html`) with Admin, Issuer and Verifier panels, in-browser SHA-256 hashing and an on-chain event log
+
+**In progress:** MetaMask wallet integration (the demo UI currently signs with local Hardhat accounts)
+
+**Remaining:** Sepolia testnet deployment, React frontend, and final polish
+
+## Running the Demo
+
+```bash
+npm run node          # terminal 1
+npm run deploy:local  # terminal 2
+npm run frontend      # terminal 3, then open http://localhost:5173
+```
+
+Sample files are in `demo-files/`: an original diploma and a tampered copy.
 
 ## Privacy and Scope
 

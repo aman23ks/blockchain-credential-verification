@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Credential Registry Demo</title>
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #f5f6f8; --card: #fff; --ink: #1d2330; --muted: #667085; --line: #e3e6eb;
+    --accent: #8c1d40; --ok: #127a3a; --ok-bg: #e7f6ec; --bad: #b42318; --bad-bg: #fdecea;
+    --warn: #8a5a00; --warn-bg: #fff4dc; --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.45 system-ui, -apple-system, Segoe UI, sans-serif; background: var(--bg); color: var(--ink); }
+  header { background: var(--accent); color: #fff; padding: 14px 24px; display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: baseline; }
+  header h1 { font-size: 19px; margin: 0; }
+  header .meta { font: 12px var(--mono); opacity: .9; }
+  main { max-width: 1280px; margin: 0 auto; padding: 20px 16px 40px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+  .card h2 { margin: 0 0 2px; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+  .card .who { font: 12px var(--mono); color: var(--muted); margin-bottom: 12px; word-break: break-all; }
+  .tag { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; padding: 2px 7px; border-radius: 99px; background: #eef0f4; color: var(--muted); }
+  label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin: 10px 0 4px; }
+  input[type=text], select { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; font: 13px var(--mono); background: #fff; color: var(--ink); }
+  .row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  button { padding: 8px 14px; border: 0; border-radius: 6px; font-weight: 600; cursor: pointer; background: var(--accent); color: #fff; }
+  button.secondary { background: #eef0f4; color: var(--ink); }
+  button:disabled { opacity: .5; cursor: default; }
+  .drop { border: 2px dashed var(--line); border-radius: 8px; padding: 14px; text-align: center; color: var(--muted); cursor: pointer; font-size: 13px; }
+  .drop.over { border-color: var(--accent); background: #fbf2f5; }
+  .hash { font: 12px var(--mono); word-break: break-all; background: #f7f8fa; border-radius: 6px; padding: 8px; margin-top: 8px; min-height: 34px; }
+  .status { margin-top: 12px; padding: 10px 12px; border-radius: 8px; font-size: 14px; display: none; }
+  .status.show { display: block; }
+  .status.ok { background: var(--ok-bg); color: var(--ok); }
+  .status.bad { background: var(--bad-bg); color: var(--bad); }
+  .status.warn { background: var(--warn-bg); color: var(--warn); }
+  .status .big { font-weight: 700; font-size: 17px; }
+  .status dl { margin: 6px 0 0; display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; font-size: 12px; color: var(--ink); }
+  .status dt { color: var(--muted); }
+  .status dd { margin: 0; font-family: var(--mono); word-break: break-all; }
+  #log { margin-top: 16px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  td.mono { font-family: var(--mono); font-size: 12px; word-break: break-all; }
+  .err { color: var(--bad); }
+  .authline { font-size: 13px; font-weight: 600; margin-top: 6px; }
+  .authline.yes { color: var(--ok); }
+  .authline.no { color: var(--bad); }
+  header .err { color: #fff; background: rgba(0,0,0,.35); padding: 3px 8px; border-radius: 4px; font-weight: 700; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Academic Credential Registry — Group 27</h1>
+  <span class="meta" id="netInfo">connecting…</span>
+</header>
+<main>
+  <div class="grid">
+    <!-- ADMIN -->
+    <section class="card">
+      <h2>Registry Admin <span class="tag">owner</span></h2>
+      <div class="who" id="adminAddr"></div>
+      <label for="issuerInput">Institution wallet</label>
+      <input type="text" id="issuerInput" />
+      <div class="row">
+        <button id="btnAuth">Authorize issuer</button>
+        <button id="btnDeauth" class="secondary">Deauthorize</button>
+      </div>
+      <div class="status" id="adminStatus"></div>
+    </section>
+
+    <!-- ISSUER -->
+    <section class="card">
+      <h2>Issuing Institution <span class="tag">issuer</span></h2>
+      <label for="issuerAs">Acting as</label>
+      <select id="issuerAs"></select>
+      <div class="authline" id="issuerAuth"></div>
+      <label>Credential file</label>
+      <div class="drop" id="issueDrop">Drop a diploma file here or click to choose</div>
+      <input type="file" id="issueFile" hidden />
+      <div class="hash" id="issueHash">SHA-256 is computed locally in the browser</div>
+      <div class="row">
+        <button id="btnRegister" disabled>Register hash on-chain</button>
+        <button id="btnRevoke" class="secondary" disabled>Revoke</button>
+      </div>
+      <div class="status" id="issueStatus"></div>
+    </section>
+
+    <!-- VERIFIER -->
+    <section class="card">
+      <h2>Verifier / Employer <span class="tag">read-only</span></h2>
+      <div class="who" id="verifierAddr"></div>
+      <label>Credential file presented by the student</label>
+      <div class="drop" id="verifyDrop">Drop the file to verify</div>
+      <input type="file" id="verifyFile" hidden />
+      <div class="hash" id="verifyHash">—</div>
+      <div class="status" id="verifyStatus"></div>
+    </section>
+  </div>
+
+  <section class="card" id="log">
+    <h2>On-chain event log</h2>
+    <div class="who">Events emitted by CredentialRegistry (newest first)</div>
+    <table>
+      <thead><tr><th>Block</th><th>Event</th><th>Details</th><th>Tx</th></tr></thead>
+      <tbody id="logBody"></tbody>
+    </table>
+  </section>
+</main>
+
+<script>
+const RPC = "http://127.0.0.1:8545";
+// Hardhat's default unlocked accounts stand in for stakeholder wallets.
+const ROLES = { admin: 0, university: 1, verifier: 2, attacker: 3 };
+const $ = (id) => document.getElementById(id);
+const short = (a) => a.slice(0, 6) + "…" + a.slice(-4);
+
+let provider, deployment, accounts, names = {};
+let issueHashValue = null;
+
+function show(el, kind, html) {
+  el.className = "status show " + kind;
+  el.innerHTML = html;
+}
+
+function reason(e) {
+  return e?.revert?.args?.[0] || e?.shortMessage || e?.reason || e?.message || String(e);
+}
+
+async function sha256Hex(file) {
+  const buf = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
+  return "0x" + [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function contractAs(index) {
+  const signer = await provider.getSigner(accounts[index]);
+  return new ethers.Contract(deployment.address, deployment.abi, signer);
+}
+
+function wireDrop(dropId, inputId, onFile) {
+  const drop = $(dropId), input = $(inputId);
+  drop.onclick = () => input.click();
+  input.onchange = () => input.files[0] && onFile(input.files[0]);
+  drop.ondragover = (e) => { e.preventDefault(); drop.classList.add("over"); };
+  drop.ondragleave = () => drop.classList.remove("over");
+  drop.ondrop = (e) => { e.preventDefault(); drop.classList.remove("over"); e.dataTransfer.files[0] && onFile(e.dataTransfer.files[0]); };
+}
+
+async function runTx(statusEl, label, fn) {
+  show(statusEl, "warn", `Sending <b>${label}</b> transaction…`);
+  try {
+    const tx = await fn();
+    const rc = await tx.wait();
+    show(statusEl, "ok", `<div class="big">✔ ${label} confirmed</div>
+      <dl><dt>tx</dt><dd>${rc.hash}</dd><dt>block</dt><dd>${rc.blockNumber}</dd><dt>gas used</dt><dd>${rc.gasUsed}</dd></dl>`);
+  } catch (e) {
+    show(statusEl, "bad", `<div class="big">⛔ Reverted</div>${reason(e)}`);
+  }
+  refreshLog();
+}
+
+// ---------- Admin ----------
+$("btnAuth").onclick = async () => {
+  const c = await contractAs(ROLES.admin);
+  runTx($("adminStatus"), "authorizeIssuer", () => c.authorizeIssuer($("issuerInput").value.trim()));
+};
+$("btnDeauth").onclick = async () => {
+  const c = await contractAs(ROLES.admin);
+  runTx($("adminStatus"), "deauthorizeIssuer", () => c.deauthorizeIssuer($("issuerInput").value.trim()));
+};
+
+// ---------- Issuer ----------
+wireDrop("issueDrop", "issueFile", async (file) => {
+  issueHashValue = await sha256Hex(file);
+  $("issueDrop").textContent = "📄 " + file.name;
+  $("issueHash").textContent = issueHashValue;
+  $("btnRegister").disabled = $("btnRevoke").disabled = false;
+});
+$("btnRegister").onclick = async () => {
+  const c = await contractAs(Number($("issuerAs").value));
+  runTx($("issueStatus"), "registerCredential", () => c.registerCredential(issueHashValue));
+};
+$("btnRevoke").onclick = async () => {
+  const c = await contractAs(Number($("issuerAs").value));
+  runTx($("issueStatus"), "revokeCredential", () => c.revokeCredential(issueHashValue));
+};
+
+// ---------- Verifier ----------
+wireDrop("verifyDrop", "verifyFile", async (file) => {
+  const hash = await sha256Hex(file);
+  $("verifyDrop").textContent = "📄 " + file.name;
+  $("verifyHash").textContent = hash;
+  const c = await contractAs(ROLES.verifier);
+  const [rec, valid] = await Promise.all([c.getCredential(hash), c.isCredentialValid(hash)]);
+  if (!rec.exists) {
+    show($("verifyStatus"), "bad", `<div class="big">✖ Not found</div>No credential with this hash is registered. The file may be forged or altered.`);
+    return;
+  }
+  const issuerOk = await c.isAuthorizedIssuer(rec.issuer);
+  const details = `<dl>
+      <dt>issuer</dt><dd>${rec.issuer} ${names[rec.issuer] ? "(" + names[rec.issuer] + ")" : ""}</dd>
+      <dt>issuer authorized</dt><dd>${issuerOk}</dd>
+      <dt>issued at</dt><dd>${new Date(Number(rec.issuedAt) * 1000).toLocaleString()}</dd>
+      <dt>revoked</dt><dd>${rec.revoked}</dd></dl>`;
+  if (valid) show($("verifyStatus"), "ok", `<div class="big">✔ Valid credential</div>${details}`);
+  else show($("verifyStatus"), "bad", `<div class="big">✖ Invalid</div>${rec.revoked ? "Revoked by the issuer." : "Issuer is no longer authorized."}${details}`);
+});
+
+// ---------- Issuer authorization badge ----------
+async function refreshAuth() {
+  if (!deployment || !accounts) return;
+  const addr = accounts[Number($("issuerAs").value)];
+  const c = new ethers.Contract(deployment.address, deployment.abi, provider);
+  const ok = await c.isAuthorizedIssuer(addr);
+  const el = $("issuerAuth");
+  el.className = "authline " + (ok ? "yes" : "no");
+  el.textContent = ok ? "✔ This wallet is an authorized issuer" : "✖ This wallet is NOT authorized — Admin must authorize it first";
+}
+$("issuerAs").onchange = refreshAuth;
+
+// ---------- Event log ----------
+async function refreshLog() {
+  refreshAuth();
+  const c = new ethers.Contract(deployment.address, deployment.abi, provider);
+  const events = await c.queryFilter("*", 0, "latest");
+  const fmt = (v) => (typeof v === "string" && v.length === 42 ? `${short(v)}${names[v] ? " (" + names[v] + ")" : ""}` : typeof v === "string" && v.length === 66 ? short(v) : String(v));
+  $("logBody").innerHTML = events.reverse().map((ev) => `
+    <tr><td>${ev.blockNumber}</td><td><b>${ev.eventName}</b></td>
+    <td class="mono">${ev.fragment.inputs.map((inp, i) => `${inp.name}=${fmt(ev.args[i])}`).join("<br>")}</td>
+    <td class="mono">${short(ev.transactionHash)}</td></tr>`).join("") || `<tr><td colspan="4">No events yet</td></tr>`;
+}
+
+// ---------- Init ----------
+async function waitForContract() {
+  for (;;) {
+    try {
+      deployment = await (await fetch("deployment.json", { cache: "no-store" })).json();
+      if ((await provider.getCode(deployment.address)) !== "0x") return;
+      $("netInfo").innerHTML = `<span class="err">No contract on this chain yet — run \`npm run deploy:local\` (waiting…)</span>`;
+    } catch (e) {
+      $("netInfo").innerHTML = `<span class="err">Waiting for blockchain / deployment: ${reason(e)}</span>`;
+    }
+    await new Promise((r) => setTimeout(r, 2000));
+  }
+}
+
+(async () => {
+  provider = new ethers.JsonRpcProvider(RPC);
+  // Fill in the role wallets first so the dropdown is never empty.
+  for (;;) {
+    try { accounts = (await provider.send("eth_accounts", [])).map((a) => ethers.getAddress(a)); break; }
+    catch (e) { $("netInfo").innerHTML = `<span class="err">Blockchain not reachable — run \`npm run node\` (retrying…)</span>`; await new Promise((r) => setTimeout(r, 2000)); }
+  }
+  names = { [accounts[0]]: "Admin", [accounts[1]]: "University", [accounts[2]]: "Verifier", [accounts[3]]: "Unauthorized wallet" };
+  $("adminAddr").textContent = accounts[ROLES.admin];
+  $("verifierAddr").textContent = accounts[ROLES.verifier];
+  $("issuerInput").value = accounts[ROLES.university];
+  $("issuerAs").innerHTML = `
+    <option value="${ROLES.university}">University — ${accounts[ROLES.university]}</option>
+    <option value="${ROLES.attacker}">Unauthorized wallet — ${accounts[ROLES.attacker]}</option>`;
+  $("issuerAs").value = String(ROLES.university);
+
+  await waitForContract();
+  const net = await provider.getNetwork();
+  $("netInfo").textContent = `chainId ${net.chainId} · contract ${deployment.address}`;
+  refreshLog();
+})();
+</script>
+</body>
+</html>

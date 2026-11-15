@@ -1,0 +1,7 @@
+CSE 540 - Interim Demo - Group 27
+Project: Blockchain-Based Academic Credential Verification
+
+Zoom recording link: <PASTE LINK HERE>
+Passcode: <PASTE PASSCODE HERE>
+
+GitHub repository: https://github.com/aman23ks/blockchain-credential-verification
