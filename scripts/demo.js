@@ -43,7 +43,8 @@ async function expectRevert(promise, label) {
     await promise;
     console.log(`  ${label}: unexpectedly succeeded`);
   } catch (e) {
-    const reason = e.shortMessage || e.reason || e.message;
+    // Custom errors are decoded by ethers using the contract ABI.
+    const reason = e.revert ? `${e.revert.name}(${e.revert.args.join(", ")})` : e.shortMessage || e.message;
     console.log(`  ${label}: ⛔ reverted — ${reason}`);
   }
 }

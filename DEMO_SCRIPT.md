@@ -73,7 +73,7 @@ Then:
 > Here's a copy where someone changed "Master of Science" to "Doctor of Philosophy". The hash is completely different, so the result is **Not found**. The forgery is detected.
 
 **5. Unauthorized wallet** *(Acting as → Unauthorized wallet, click Register hash on-chain)*
-> What if a random wallet tries to issue the same diploma? The contract reverts with "Caller is not an authorized issuer". *(click Revoke)* It also can't revoke someone else's credential: "Only original issuer can revoke".
+> What if a random wallet tries to issue the same diploma? The contract reverts with the custom error `NotAuthorizedIssuer`, and the page explains it in plain language. *(click Revoke)* It also can't revoke someone else's credential: `NotOriginalIssuer`.
 
 **6. Revocation** *(Acting as → University, click Revoke, then drop the original into the Verifier box again)*
 > Finally, the university revokes the credential, for example after an academic integrity case. When the employer checks the same file again, it now shows **Invalid, revoked by the issuer**.

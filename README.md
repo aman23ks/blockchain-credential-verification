@@ -1,176 +1,174 @@
-# Blockchain-Based Academic Credential Verification System
+# Blockchain-Based Academic Credential Verification
 
-CSE 540 Blockchain Engineering - Group 27
+CSE 540 Blockchain Engineering — Group 27
 
-## Project Description
+Academic credentials such as degrees and certificates can be altered or fabricated, and verifying them usually means contacting the issuing institution. This project provides a shared, tamper-evident verification layer on Ethereum.
 
-Academic credentials such as degrees and certificates can be altered or fabricated, while traditional verification may require employers or other verifiers to contact the issuing institution directly. This project proposes a blockchain-based academic credential verification system that provides a shared, tamper-evident verification layer.
+Authorized institutions register the **SHA-256 hash** of each credential in a smart contract. The credential file and all personally identifiable information stay **off-chain** with the student. Anyone holding the file can hash it and check the on-chain record. If even one character of the document changes, its hash no longer matches.
 
-Authorized institutions register a cryptographic hash of a credential on an Ethereum-compatible blockchain. The original credential file and personally identifiable information remain off-chain. A verifier can compute the SHA-256 hash of a submitted credential and compare it with the on-chain record. If the document has been modified, its hash will no longer match the registered value.
+## Features
 
-The draft smart contract supports:
-
-- Authorized issuer management
-- Credential hash registration
-- Credential metadata retrieval
-- Credential revocation
-- Issuer verification
-- Credential validity checking
-- Events for important contract actions
+- **Role-based access control**: a registry owner (admin) manages which institution wallets may issue credentials.
+- **Two-step ownership transfer**: the admin role can be handed over safely (`transferOwnership` followed by `acceptOwnership`).
+- **Credential registration**: an authorized issuer registers a credential hash. The issuer address and block timestamp are recorded.
+- **Revocation**: only the institution that issued a credential can revoke it.
+- **Verification**: a free read-only check. A credential is valid only if it exists, is not revoked, and its issuer is still authorized.
+- **Events** for every state change, which the web client shows as an on-chain audit log.
+- **Custom errors** for every failure (for example `NotAuthorizedIssuer(address)` or `CredentialAlreadyRegistered(bytes32)`), decoded into plain-language messages in the UI.
+- **Web client** with an Admin, an Issuer and a Verifier panel. Files are hashed in the browser. Transactions are signed either with local test accounts or with **MetaMask**.
+- **Sepolia testnet** deployment support.
 
 ## Architecture
 
-The planned system separates private credential handling from blockchain verification.
-
 ```text
-Issuer / Student / Verifier
-            |
-            v
-    React Web Application
-            |
-            v
- Credential Hashing (SHA-256)
-       /             \
-      v               v
-MetaMask       CredentialRegistry
-                    Smart Contract
-                         |
-                         v
-               Ethereum-Compatible
-                    Blockchain
+ Registry Admin      Issuing Institution      Verifier / Employer
+        \                    |                       /
+         v                   v                      v
+   Web client (frontend/index.html) — SHA-256 in the browser (Web Crypto API)
+                             |
+                 ethers.js v6 + MetaMask / local RPC
+                             |
+                             v
+              CredentialRegistry smart contract (EVM)
+       ├── RegistryAccessControl   owner, issuers, two-step ownership
+       └── credential lifecycle    register · revoke · verify · events
 ```
 
-The React application will eventually handle credential selection, SHA-256 hashing, wallet connection, and user interaction. MetaMask will authorize blockchain transactions. Only the credential hash and minimal verification metadata are stored on-chain.
+Only the 32-byte hash and minimal metadata go on-chain:
 
-## Smart Contract Design
-
-### `ICredentialRegistry.sol`
-
-Defines the public interface of the credential registry, including the `Credential` structure, events, and function signatures.
-
-### `CredentialRegistry.sol`
-
-Provides the draft implementation of the registry.
-
-Each credential stores:
-
-- `issuer`: wallet address of the issuing institution
-- `issuedAt`: blockchain timestamp when the credential was registered
-- `revoked`: whether the credential has been revoked
-- `exists`: whether the credential hash has been registered
-
-The credential document itself is **not** stored on-chain.
-
-### Main Contract Functions
-
-| Function | Purpose |
+| Stored on-chain | Kept off-chain |
 | --- | --- |
-| `authorizeIssuer(address)` | Allows the contract owner to authorize an institution wallet. |
-| `deauthorizeIssuer(address)` | Removes an institution's authorization. |
-| `registerCredential(bytes32)` | Registers a credential hash and issuance metadata. |
-| `revokeCredential(bytes32)` | Allows the original issuer to revoke a credential. |
-| `getCredential(bytes32)` | Retrieves stored credential metadata. |
-| `isAuthorizedIssuer(address)` | Checks whether an issuer is currently authorized. |
-| `isCredentialValid(bytes32)` | Checks existence, revocation status, and issuer authorization. |
+| Credential hash (`bytes32`) | The credential file (PDF, TXT, …) |
+| Issuer address, issue timestamp | Student name, grades, IDs |
+| Revoked / exists flags | |
+| Set of authorized issuers | |
 
-## Dependencies
+## Smart Contracts
 
-The draft uses:
+```text
+contracts/
+├── CredentialRegistry.sol             credential lifecycle (register, revoke, verify)
+├── access/RegistryAccessControl.sol   reusable RBAC module (owner + issuers)
+├── interfaces/ICredentialRegistry.sol    struct, events, custom errors, API
+├── interfaces/IRegistryAccessControl.sol role events, custom errors, API
+└── mocks/RegistryAccessControlMock.sol   test-only helper
+```
 
-- Node.js 18 or newer
-- npm
-- Solidity 0.8.24
-- Hardhat
-- Hardhat Toolbox
-- ethers.js through Hardhat Toolbox
+| Function | Who can call | Purpose |
+| --- | --- | --- |
+| `authorizeIssuer(address)` | Owner | Authorize an institution wallet |
+| `deauthorizeIssuer(address)` | Owner | Remove an institution; its credentials stop validating |
+| `transferOwnership(address)` / `acceptOwnership()` | Owner / pending owner | Two-step admin handover |
+| `registerCredential(bytes32)` | Authorized issuer | Register a credential hash |
+| `revokeCredential(bytes32)` | Original issuer | Revoke a credential |
+| `getCredential(bytes32)` | Anyone (view) | Issuer, issue time, revoked, exists |
+| `isCredentialValid(bytes32)` | Anyone (view) | exists ∧ ¬revoked ∧ issuer currently authorized |
+| `isAuthorizedIssuer(address)`, `owner()`, `pendingOwner()` | Anyone (view) | Role lookups |
 
-The planned frontend will use React, ethers.js, MetaMask, and SHA-256 hashing.
+### Custom errors
 
-## Setup
+| Error | When it is raised |
+| --- | --- |
+| `NotOwner(caller)` | A non-owner calls an admin function |
+| `NotPendingOwner(caller)` | Someone other than the pending owner calls `acceptOwnership` |
+| `NotAuthorizedIssuer(caller)` | An unauthorized wallet tries to register |
+| `ZeroAddress()` | The zero address is passed as an issuer or new owner |
+| `IssuerAlreadyAuthorized(issuer)` / `IssuerNotAuthorized(issuer)` | A redundant authorize or deauthorize call |
+| `EmptyCredentialHash()` | The zero hash is registered |
+| `CredentialAlreadyRegistered(hash)` | A duplicate registration |
+| `CredentialNotFound(hash)` | An unknown hash is revoked |
+| `NotOriginalIssuer(hash, caller)` | Someone other than the issuer tries to revoke |
+| `CredentialAlreadyRevoked(hash)` | A credential is revoked twice |
 
-Clone the repository:
+### Events
+
+`IssuerAuthorized`, `IssuerDeauthorized`, `OwnershipTransferStarted`, `OwnershipTransferred`, `CredentialRegistered`, `CredentialRevoked`. Hashes and addresses are `indexed`, so they can be filtered by topic.
+
+## Requirements
+
+- Node.js 18 or newer, and npm
+- A modern browser. MetaMask is optional for local use and required for Sepolia.
+
+## Quick Start (local blockchain)
 
 ```bash
 git clone https://github.com/aman23ks/blockchain-credential-verification.git
 cd blockchain-credential-verification
-```
-
-Install dependencies:
-
-```bash
 npm install
 ```
 
-Compile the contracts:
+Run each of these in its own terminal:
 
 ```bash
-npm run compile
+npm run node          # 1. local Hardhat blockchain on http://127.0.0.1:8545
+npm run deploy:local  # 2. deploy the contract; writes frontend/deployment.json
+npm run frontend      # 3. serve the web client at http://localhost:5173
 ```
 
-Run the draft tests:
+Open **http://localhost:5173**. Sample files are in `demo-files/`.
+
+> Restarting `npm run node` resets the chain, so run `npm run deploy:local` again afterwards. The page waits for the deployment and connects automatically.
+
+### Using the web client
+
+1. **Admin**: click **Authorize issuer**. The University wallet is pre-filled.
+2. **Issuer**: drop `demo-files/diploma_jane_doe.txt`, then click **Register hash on-chain**.
+3. **Verifier**: drop the same file. The result is **✔ Valid credential**.
+4. **Tamper check**: drop `diploma_jane_doe_TAMPERED.txt`. The result is **✖ Not found**.
+5. **Unauthorized wallet**: set *Acting as* to *Unauthorized wallet* and click **Register**. The transaction reverts with `NotAuthorizedIssuer`.
+6. **Revocation**: as the University, click **Revoke**, then verify the original file again. The result is **✖ Invalid**.
+
+### Signing with MetaMask (local)
+
+Select **MetaMask** in the bar at the top and click **Connect MetaMask**. The page asks MetaMask to switch to (or add) the *Hardhat Local* network (chain ID 31337, RPC `http://127.0.0.1:8545`). To use a funded test wallet, import one of the private keys that `npm run node` prints. **These keys are public; never use them on a real network.** Account #0 is the registry owner.
+
+## Deploying to Sepolia
+
+1. Get a Sepolia RPC URL (for example from Infura or Alchemy) and fund a **test** wallet with Sepolia ETH.
+2. Store the secrets as Hardhat configuration variables. They are kept outside the repository.
+
+   ```bash
+   npx hardhat vars set SEPOLIA_RPC_URL
+   npx hardhat vars set SEPOLIA_PRIVATE_KEY
+   npx hardhat vars set ETHERSCAN_API_KEY   # optional, for verification
+   ```
+
+3. Deploy, and optionally verify the source on Etherscan:
+
+   ```bash
+   npm run deploy:sepolia
+   npx hardhat verify --network sepolia <deployed-address>
+   ```
+
+4. Run `npm run frontend` and open http://localhost:5173. On a public network the page uses MetaMask for both reads and writes. The deploying wallet is the registry owner.
+
+## Testing
 
 ```bash
-npm test
+npm test          # 30 unit tests
+npm run coverage  # line and branch coverage report
+npm run demo      # scripted end-to-end workflow in the terminal
 ```
 
-## Local Deployment
+The test suite covers every function and every custom error: ownership transfer, issuer management, registration, verification, revocation, deauthorization cascades and constant gas cost. Coverage is **100%** for statements, branches, functions and lines (`mocks/` is excluded).
 
-Start a local Hardhat blockchain in one terminal:
+`npm run demo` runs the whole workflow with real files: deploy, authorize, register, verify the original, detect the tampered copy, block an unauthorized wallet, then revoke.
 
-```bash
-npm run node
+## Project Structure
+
+```text
+contracts/            Solidity sources (see above)
+scripts/deploy.js     deploys and exports address + ABI to frontend/deployment.json
+scripts/demo.js       end-to-end CLI demonstration
+scripts/serve-frontend.js  minimal static server for the web client
+frontend/index.html   single-page web client (ethers.js v6)
+test/                 Hardhat / Mocha / Chai tests
+demo-files/           sample diploma and a tampered copy
 ```
-
-In another terminal, deploy the contract:
-
-```bash
-npm run deploy:local
-```
-
-The deployment script will print the local `CredentialRegistry` contract address.
-
-## Intended Usage
-
-At a high level, the completed application will follow this workflow:
-
-1. The registry administrator authorizes an academic institution's wallet.
-2. The institution selects a credential file in the web application.
-3. The application computes the file's SHA-256 hash locally.
-4. The authorized institution registers that hash through the smart contract.
-5. A student can later provide the credential file to a verifier.
-6. The verifier hashes the submitted file and queries the registry using the resulting hash.
-7. The system checks whether the credential exists, whether its issuer is authorized, and whether it has been revoked.
-8. The original issuer can revoke a credential when necessary.
-
-## Current Project Status
-
-**Implemented**
-
-- `CredentialRegistry` smart contract (issuer management, registration, revocation, validity checks, events)
-- Hardhat unit tests (9 passing) covering authorization, tamper detection, duplicates, revocation rights and deauthorization
-- Local deployment script, which also exports the address and ABI to `frontend/deployment.json`
-- End-to-end CLI demo: `npm run demo`
-- Web demo frontend (`frontend/index.html`) with Admin, Issuer and Verifier panels, in-browser SHA-256 hashing and an on-chain event log
-
-**In progress:** MetaMask wallet integration (the demo UI currently signs with local Hardhat accounts)
-
-**Remaining:** Sepolia testnet deployment, React frontend, and final polish
-
-## Running the Demo
-
-```bash
-npm run node          # terminal 1
-npm run deploy:local  # terminal 2
-npm run frontend      # terminal 3, then open http://localhost:5173
-```
-
-Sample files are in `demo-files/`: an original diploma and a tampered copy.
 
 ## Privacy and Scope
 
-Credential documents and personally identifiable information are intentionally kept off-chain. The blockchain acts only as a verification and integrity layer by storing hashes and minimal metadata.
-
-The course-scale project does not attempt to integrate with production university information systems or store complete student records on-chain.
+Credential documents and personal data are never stored on-chain; the blockchain acts only as an integrity and verification layer. A hash registry proves that a *document* is genuine, not who is presenting it. To make guessing attacks on templated documents infeasible, institutions should embed a random identifier in each credential before hashing. The project does not integrate with production university systems.
 
 ## Team
 

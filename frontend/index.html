@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Credential Registry Demo</title>
+<title>Credential Registry</title>
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
 <style>
   :root {
@@ -16,39 +16,47 @@
   header { background: var(--accent); color: #fff; padding: 14px 24px; display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: baseline; }
   header h1 { font-size: 19px; margin: 0; }
   header .meta { font: 12px var(--mono); opacity: .9; }
-  main { max-width: 1280px; margin: 0 auto; padding: 20px 16px 40px; }
+  header .err { color: #fff; background: rgba(0,0,0,.35); padding: 3px 8px; border-radius: 4px; font-weight: 700; font-family: inherit; }
+  main { max-width: 1280px; margin: 0 auto; padding: 16px 16px 40px; }
+  .walletbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 16px; margin-bottom: 16px; font-size: 14px; }
+  .walletbar label { display: inline-flex; align-items: center; gap: 6px; margin: 0; font-size: 14px; font-weight: 500; color: var(--ink); }
+  .walletbar .status { font: 12px var(--mono); color: var(--muted); word-break: break-all; }
   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
   .card h2 { margin: 0 0 2px; font-size: 16px; display: flex; align-items: center; gap: 8px; }
-  .card .who { font: 12px var(--mono); color: var(--muted); margin-bottom: 12px; word-break: break-all; }
+  .who { font: 12px var(--mono); color: var(--muted); margin-bottom: 8px; word-break: break-all; }
   .tag { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; padding: 2px 7px; border-radius: 99px; background: #eef0f4; color: var(--muted); }
   label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin: 10px 0 4px; }
   input[type=text], select { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; font: 13px var(--mono); background: #fff; color: var(--ink); }
   .row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
-  button { padding: 8px 14px; border: 0; border-radius: 6px; font-weight: 600; cursor: pointer; background: var(--accent); color: #fff; }
+  button { padding: 8px 14px; border: 0; border-radius: 6px; font-weight: 600; cursor: pointer; background: var(--accent); color: #fff; font-size: 14px; }
   button.secondary { background: #eef0f4; color: var(--ink); }
   button:disabled { opacity: .5; cursor: default; }
   .drop { border: 2px dashed var(--line); border-radius: 8px; padding: 14px; text-align: center; color: var(--muted); cursor: pointer; font-size: 13px; }
   .drop.over { border-color: var(--accent); background: #fbf2f5; }
   .hash { font: 12px var(--mono); word-break: break-all; background: #f7f8fa; border-radius: 6px; padding: 8px; margin-top: 8px; min-height: 34px; }
-  .status { margin-top: 12px; padding: 10px 12px; border-radius: 8px; font-size: 14px; display: none; }
+  .status { margin-top: 12px; padding: 10px 12px; border-radius: 8px; font-size: 14px; display: none; word-break: break-word; }
   .status.show { display: block; }
   .status.ok { background: var(--ok-bg); color: var(--ok); }
   .status.bad { background: var(--bad-bg); color: var(--bad); }
   .status.warn { background: var(--warn-bg); color: var(--warn); }
   .status .big { font-weight: 700; font-size: 17px; }
+  .status code { font: 12px var(--mono); }
   .status dl { margin: 6px 0 0; display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; font-size: 12px; color: var(--ink); }
   .status dt { color: var(--muted); }
   .status dd { margin: 0; font-family: var(--mono); word-break: break-all; }
-  #log { margin-top: 16px; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
-  td.mono { font-family: var(--mono); font-size: 12px; word-break: break-all; }
-  .err { color: var(--bad); }
+  .status a { color: inherit; }
   .authline { font-size: 13px; font-weight: 600; margin-top: 6px; }
   .authline.yes { color: var(--ok); }
   .authline.no { color: var(--bad); }
-  header .err { color: #fff; background: rgba(0,0,0,.35); padding: 3px 8px; border-radius: 4px; font-weight: 700; }
+  .divider { border: 0; border-top: 1px solid var(--line); margin: 16px 0 4px; }
+  .or { text-align: center; font-size: 12px; color: var(--muted); margin: 8px 0 0; }
+  #log { margin-top: 16px; }
+  .tablewrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  td.mono { font-family: var(--mono); font-size: 12px; word-break: break-all; }
+  [hidden] { display: none !important; }
 </style>
 </head>
 <body>
@@ -57,16 +65,33 @@
   <span class="meta" id="netInfo">connecting…</span>
 </header>
 <main>
+  <!-- Wallet mode -->
+  <section class="walletbar">
+    <strong>Sign transactions with:</strong>
+    <label><input type="radio" name="mode" value="local" id="modeLocal" checked /> Local test accounts</label>
+    <label><input type="radio" name="mode" value="metamask" id="modeMM" /> MetaMask</label>
+    <button id="btnConnect" class="secondary" hidden>Connect MetaMask</button>
+    <span class="status" id="walletStatus" style="display:inline;margin:0;padding:0"></span>
+  </section>
+
   <div class="grid">
     <!-- ADMIN -->
     <section class="card">
       <h2>Registry Admin <span class="tag">owner</span></h2>
-      <div class="who" id="adminAddr"></div>
+      <div class="who" id="ownerInfo"></div>
+      <div class="authline" id="adminAuth"></div>
       <label for="issuerInput">Institution wallet</label>
-      <input type="text" id="issuerInput" />
+      <input type="text" id="issuerInput" placeholder="0x…" />
       <div class="row">
         <button id="btnAuth">Authorize issuer</button>
         <button id="btnDeauth" class="secondary">Deauthorize</button>
+      </div>
+      <hr class="divider" />
+      <label for="ownerInput">Transfer admin role (two-step)</label>
+      <input type="text" id="ownerInput" placeholder="New owner address" />
+      <div class="row">
+        <button id="btnTransfer" class="secondary">Start transfer</button>
+        <button id="btnAccept" class="secondary">Accept as pending owner</button>
       </div>
       <div class="status" id="adminStatus"></div>
     </section>
@@ -74,8 +99,11 @@
     <!-- ISSUER -->
     <section class="card">
       <h2>Issuing Institution <span class="tag">issuer</span></h2>
-      <label for="issuerAs">Acting as</label>
-      <select id="issuerAs"></select>
+      <div id="issuerLocal">
+        <label for="issuerAs">Acting as</label>
+        <select id="issuerAs"></select>
+      </div>
+      <div class="who" id="issuerMM" hidden></div>
       <div class="authline" id="issuerAuth"></div>
       <label>Credential file</label>
       <div class="drop" id="issueDrop">Drop a diploma file here or click to choose</div>
@@ -91,10 +119,15 @@
     <!-- VERIFIER -->
     <section class="card">
       <h2>Verifier / Employer <span class="tag">read-only</span></h2>
-      <div class="who" id="verifierAddr"></div>
+      <div class="who">No wallet or gas needed — verification is a free read.</div>
       <label>Credential file presented by the student</label>
       <div class="drop" id="verifyDrop">Drop the file to verify</div>
       <input type="file" id="verifyFile" hidden />
+      <p class="or">or check a hash directly</p>
+      <div class="row" style="margin-top:4px">
+        <input type="text" id="hashInput" placeholder="0x… (64 hex characters)" style="flex:1;min-width:0" />
+        <button id="btnCheckHash" class="secondary">Check</button>
+      </div>
       <div class="hash" id="verifyHash">—</div>
       <div class="status" id="verifyStatus"></div>
     </section>
@@ -103,40 +136,101 @@
   <section class="card" id="log">
     <h2>On-chain event log</h2>
     <div class="who">Events emitted by CredentialRegistry (newest first)</div>
-    <table>
-      <thead><tr><th>Block</th><th>Event</th><th>Details</th><th>Tx</th></tr></thead>
-      <tbody id="logBody"></tbody>
-    </table>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Block</th><th>Event</th><th>Details</th><th>Tx</th></tr></thead>
+        <tbody id="logBody"></tbody>
+      </table>
+    </div>
   </section>
 </main>
 
 <script>
-const RPC = "http://127.0.0.1:8545";
-// Hardhat's default unlocked accounts stand in for stakeholder wallets.
-const ROLES = { admin: 0, university: 1, verifier: 2, attacker: 3 };
-const $ = (id) => document.getElementById(id);
-const short = (a) => a.slice(0, 6) + "…" + a.slice(-4);
+const LOCAL_RPC = "http://127.0.0.1:8545";
+const LOCAL_CHAIN_ID = 31337;
+// Hardhat's unlocked dev accounts stand in for stakeholder wallets in local mode.
+const LOCAL_ROLES = { university: 1, attacker: 3 };
+const EXPLORERS = { 11155111: "https://sepolia.etherscan.io" };
 
-let provider, deployment, accounts, names = {};
+// Plain-language explanations for the contract's custom errors.
+const FRIENDLY = {
+  NotOwner: "Only the registry owner (admin) can do this.",
+  NotPendingOwner: "Only the pending owner can accept the admin role.",
+  NotAuthorizedIssuer: "This wallet is not an authorized issuer. The admin must authorize it first.",
+  ZeroAddress: "The zero address is not allowed here.",
+  IssuerAlreadyAuthorized: "This institution is already authorized.",
+  IssuerNotAuthorized: "This address is not currently an authorized issuer.",
+  EmptyCredentialHash: "The credential hash cannot be empty.",
+  CredentialAlreadyRegistered: "A credential with this hash is already registered.",
+  CredentialNotFound: "No credential with this hash exists.",
+  NotOriginalIssuer: "Only the institution that issued this credential can revoke it.",
+  CredentialAlreadyRevoked: "This credential has already been revoked.",
+};
+
+const $ = (id) => document.getElementById(id);
+const short = (a) => (a ? a.slice(0, 6) + "…" + a.slice(-4) : "");
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+const state = {
+  deployment: null,
+  iface: null,
+  mode: "local",
+  localProvider: null,
+  localAccounts: [],
+  mmProvider: null,
+  mmSigner: null,
+  mmAddress: null,
+  names: {},
+  owner: null,
+};
 let issueHashValue = null;
 
+// ---------- helpers ----------
 function show(el, kind, html) {
   el.className = "status show " + kind;
   el.innerHTML = html;
 }
 
-function reason(e) {
-  return e?.revert?.args?.[0] || e?.shortMessage || e?.reason || e?.message || String(e);
+function readProvider() {
+  return state.mode === "metamask" ? state.mmProvider : state.localProvider;
+}
+
+function readContract() {
+  const p = readProvider();
+  if (!p) throw new Error("Connect MetaMask first.");
+  return new ethers.Contract(state.deployment.address, state.deployment.abi, p);
+}
+
+function label(addr) {
+  const parts = [];
+  if (state.owner && addr === state.owner) parts.push("Admin");
+  if (state.names[addr]) parts.push(state.names[addr]);
+  return parts.length ? ` (${parts.join(", ")})` : "";
+}
+
+function txLink(hash) {
+  const base = EXPLORERS[state.deployment?.chainId];
+  return base ? `<a href="${base}/tx/${hash}" target="_blank" rel="noopener">${hash}</a>` : hash;
+}
+
+/** Turns any ethers/wallet error into a readable message, decoding custom errors. */
+function explain(e) {
+  if (e?.code === "ACTION_REJECTED") return "You rejected the transaction in your wallet.";
+  let rev = e?.revert;
+  const data = e?.data ?? e?.info?.error?.data?.data ?? e?.info?.error?.data;
+  if (!rev && typeof data === "string" && state.iface) {
+    try { rev = state.iface.parseError(data); } catch {}
+  }
+  if (rev?.name) {
+    const args = [...(rev.args || [])].map((a) => (typeof a === "string" && a.length > 20 ? short(a) : String(a))).join(", ");
+    return `<code>${rev.name}(${args})</code><br>${FRIENDLY[rev.name] || ""}`;
+  }
+  return e?.shortMessage || e?.message || String(e);
 }
 
 async function sha256Hex(file) {
   const buf = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
   return "0x" + [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-async function contractAs(index) {
-  const signer = await provider.getSigner(accounts[index]);
-  return new ethers.Contract(deployment.address, deployment.abi, signer);
 }
 
 function wireDrop(dropId, inputId, onFile) {
@@ -148,28 +242,47 @@ function wireDrop(dropId, inputId, onFile) {
   drop.ondrop = (e) => { e.preventDefault(); drop.classList.remove("over"); e.dataTransfer.files[0] && onFile(e.dataTransfer.files[0]); };
 }
 
-async function runTx(statusEl, label, fn) {
-  show(statusEl, "warn", `Sending <b>${label}</b> transaction…`);
-  try {
-    const tx = await fn();
-    const rc = await tx.wait();
-    show(statusEl, "ok", `<div class="big">✔ ${label} confirmed</div>
-      <dl><dt>tx</dt><dd>${rc.hash}</dd><dt>block</dt><dd>${rc.blockNumber}</dd><dt>gas used</dt><dd>${rc.gasUsed}</dd></dl>`);
-  } catch (e) {
-    show(statusEl, "bad", `<div class="big">⛔ Reverted</div>${reason(e)}`);
+// ---------- signers ----------
+/** Returns the signer for a role: the connected wallet in MetaMask mode, or the matching dev account locally. */
+async function signerFor(role) {
+  if (state.mode === "metamask") {
+    if (!state.mmSigner) throw new Error("Connect MetaMask first.");
+    return state.mmSigner;
   }
-  refreshLog();
+  const c = readContract();
+  let addr;
+  if (role === "admin") addr = await c.owner();
+  else if (role === "pending") addr = await c.pendingOwner();
+  else addr = state.localAccounts[Number($("issuerAs").value)];
+  if (!addr || addr === ethers.ZeroAddress) throw new Error("There is no pending owner to accept.");
+  if (!state.localAccounts.includes(addr)) throw new Error(`${short(addr)} is not a local test account; switch to MetaMask mode.`);
+  return state.localProvider.getSigner(addr);
+}
+
+async function writeContract(role) {
+  return new ethers.Contract(state.deployment.address, state.deployment.abi, await signerFor(role));
+}
+
+async function runTx(statusEl, labelText, role, send) {
+  show(statusEl, "warn", `Sending <b>${labelText}</b>…${state.mode === "metamask" ? " Confirm in MetaMask." : ""}`);
+  try {
+    const c = await writeContract(role);
+    const tx = await send(c);
+    show(statusEl, "warn", `Waiting for <b>${labelText}</b> to be mined…`);
+    const rc = await tx.wait();
+    show(statusEl, "ok", `<div class="big">✔ ${labelText} confirmed</div>
+      <dl><dt>tx</dt><dd>${txLink(rc.hash)}</dd><dt>block</dt><dd>${rc.blockNumber}</dd><dt>gas used</dt><dd>${rc.gasUsed}</dd></dl>`);
+  } catch (e) {
+    show(statusEl, "bad", `<div class="big">⛔ Not completed</div>${explain(e)}`);
+  }
+  refreshAll();
 }
 
 // ---------- Admin ----------
-$("btnAuth").onclick = async () => {
-  const c = await contractAs(ROLES.admin);
-  runTx($("adminStatus"), "authorizeIssuer", () => c.authorizeIssuer($("issuerInput").value.trim()));
-};
-$("btnDeauth").onclick = async () => {
-  const c = await contractAs(ROLES.admin);
-  runTx($("adminStatus"), "deauthorizeIssuer", () => c.deauthorizeIssuer($("issuerInput").value.trim()));
-};
+$("btnAuth").onclick = () => runTx($("adminStatus"), "authorizeIssuer", "admin", (c) => c.authorizeIssuer($("issuerInput").value.trim()));
+$("btnDeauth").onclick = () => runTx($("adminStatus"), "deauthorizeIssuer", "admin", (c) => c.deauthorizeIssuer($("issuerInput").value.trim()));
+$("btnTransfer").onclick = () => runTx($("adminStatus"), "transferOwnership", "admin", (c) => c.transferOwnership($("ownerInput").value.trim()));
+$("btnAccept").onclick = () => runTx($("adminStatus"), "acceptOwnership", "pending", (c) => c.acceptOwnership());
 
 // ---------- Issuer ----------
 wireDrop("issueDrop", "issueFile", async (file) => {
@@ -178,94 +291,215 @@ wireDrop("issueDrop", "issueFile", async (file) => {
   $("issueHash").textContent = issueHashValue;
   $("btnRegister").disabled = $("btnRevoke").disabled = false;
 });
-$("btnRegister").onclick = async () => {
-  const c = await contractAs(Number($("issuerAs").value));
-  runTx($("issueStatus"), "registerCredential", () => c.registerCredential(issueHashValue));
-};
-$("btnRevoke").onclick = async () => {
-  const c = await contractAs(Number($("issuerAs").value));
-  runTx($("issueStatus"), "revokeCredential", () => c.revokeCredential(issueHashValue));
-};
+$("btnRegister").onclick = () => runTx($("issueStatus"), "registerCredential", "issuer", (c) => c.registerCredential(issueHashValue));
+$("btnRevoke").onclick = () => runTx($("issueStatus"), "revokeCredential", "issuer", (c) => c.revokeCredential(issueHashValue));
+$("issuerAs").onchange = refreshRoles;
 
 // ---------- Verifier ----------
-wireDrop("verifyDrop", "verifyFile", async (file) => {
-  const hash = await sha256Hex(file);
-  $("verifyDrop").textContent = "📄 " + file.name;
+async function verifyHash(hash) {
   $("verifyHash").textContent = hash;
-  const c = await contractAs(ROLES.verifier);
-  const [rec, valid] = await Promise.all([c.getCredential(hash), c.isCredentialValid(hash)]);
-  if (!rec.exists) {
-    show($("verifyStatus"), "bad", `<div class="big">✖ Not found</div>No credential with this hash is registered. The file may be forged or altered.`);
+  try {
+    const c = readContract();
+    const [rec, valid] = await Promise.all([c.getCredential(hash), c.isCredentialValid(hash)]);
+    if (!rec.exists) {
+      show($("verifyStatus"), "bad", `<div class="big">✖ Not found</div>No credential with this hash is registered. The file may be forged or altered.`);
+      return;
+    }
+    const issuerOk = await c.isAuthorizedIssuer(rec.issuer);
+    const details = `<dl>
+        <dt>issuer</dt><dd>${rec.issuer}${label(rec.issuer)}</dd>
+        <dt>issuer authorized</dt><dd>${issuerOk}</dd>
+        <dt>issued at</dt><dd>${new Date(Number(rec.issuedAt) * 1000).toLocaleString()}</dd>
+        <dt>revoked</dt><dd>${rec.revoked}</dd></dl>`;
+    if (valid) show($("verifyStatus"), "ok", `<div class="big">✔ Valid credential</div>${details}`);
+    else show($("verifyStatus"), "bad", `<div class="big">✖ Invalid</div>${rec.revoked ? "Revoked by the issuer." : "The issuer is no longer authorized."}${details}`);
+  } catch (e) {
+    show($("verifyStatus"), "bad", explain(e));
+  }
+}
+wireDrop("verifyDrop", "verifyFile", async (file) => {
+  $("verifyDrop").textContent = "📄 " + file.name;
+  verifyHash(await sha256Hex(file));
+});
+$("btnCheckHash").onclick = () => {
+  const h = $("hashInput").value.trim();
+  if (!/^0x[0-9a-fA-F]{64}$/.test(h)) {
+    show($("verifyStatus"), "bad", "Enter a 0x-prefixed SHA-256 hash (64 hex characters).");
     return;
   }
-  const issuerOk = await c.isAuthorizedIssuer(rec.issuer);
-  const details = `<dl>
-      <dt>issuer</dt><dd>${rec.issuer} ${names[rec.issuer] ? "(" + names[rec.issuer] + ")" : ""}</dd>
-      <dt>issuer authorized</dt><dd>${issuerOk}</dd>
-      <dt>issued at</dt><dd>${new Date(Number(rec.issuedAt) * 1000).toLocaleString()}</dd>
-      <dt>revoked</dt><dd>${rec.revoked}</dd></dl>`;
-  if (valid) show($("verifyStatus"), "ok", `<div class="big">✔ Valid credential</div>${details}`);
-  else show($("verifyStatus"), "bad", `<div class="big">✖ Invalid</div>${rec.revoked ? "Revoked by the issuer." : "Issuer is no longer authorized."}${details}`);
-});
+  $("verifyDrop").textContent = "Drop the file to verify";
+  verifyHash(h);
+};
 
-// ---------- Issuer authorization badge ----------
-async function refreshAuth() {
-  if (!deployment || !accounts) return;
-  const addr = accounts[Number($("issuerAs").value)];
-  const c = new ethers.Contract(deployment.address, deployment.abi, provider);
-  const ok = await c.isAuthorizedIssuer(addr);
-  const el = $("issuerAuth");
-  el.className = "authline " + (ok ? "yes" : "no");
-  el.textContent = ok ? "✔ This wallet is an authorized issuer" : "✖ This wallet is NOT authorized — Admin must authorize it first";
+// ---------- Role display ----------
+async function refreshRoles() {
+  if (!state.deployment || !readProvider()) return;
+  try {
+    const c = readContract();
+    const [owner, pending] = await Promise.all([c.owner(), c.pendingOwner()]);
+    state.owner = owner;
+    $("ownerInfo").textContent = `Owner: ${owner}` + (pending !== ethers.ZeroAddress ? `  ·  pending: ${pending}` : "");
+
+    if (state.mode === "metamask") {
+      const me = state.mmAddress;
+      const isOwner = me && me.toLowerCase() === owner.toLowerCase();
+      $("adminAuth").className = "authline " + (isOwner ? "yes" : "no");
+      $("adminAuth").textContent = !me ? "Connect MetaMask to act as admin." : isOwner ? "✔ Your wallet is the registry owner" : "✖ Your wallet is not the owner (admin actions will revert)";
+    } else {
+      $("adminAuth").className = "authline yes";
+      $("adminAuth").textContent = `Local mode signs admin actions as the owner (${short(owner)}).`;
+    }
+
+    const issuerAddr = state.mode === "metamask" ? state.mmAddress : state.localAccounts[Number($("issuerAs").value)];
+    if (issuerAddr) {
+      const ok = await c.isAuthorizedIssuer(issuerAddr);
+      $("issuerAuth").className = "authline " + (ok ? "yes" : "no");
+      $("issuerAuth").textContent = ok ? "✔ This wallet is an authorized issuer" : "✖ This wallet is NOT authorized — the admin must authorize it first";
+    } else {
+      $("issuerAuth").textContent = "";
+    }
+  } catch (e) {
+    $("issuerAuth").textContent = "";
+  }
 }
-$("issuerAs").onchange = refreshAuth;
 
 // ---------- Event log ----------
 async function refreshLog() {
-  refreshAuth();
-  const c = new ethers.Contract(deployment.address, deployment.abi, provider);
-  const events = await c.queryFilter("*", 0, "latest");
-  const fmt = (v) => (typeof v === "string" && v.length === 42 ? `${short(v)}${names[v] ? " (" + names[v] + ")" : ""}` : typeof v === "string" && v.length === 66 ? short(v) : String(v));
-  $("logBody").innerHTML = events.reverse().map((ev) => `
-    <tr><td>${ev.blockNumber}</td><td><b>${ev.eventName}</b></td>
-    <td class="mono">${ev.fragment.inputs.map((inp, i) => `${inp.name}=${fmt(ev.args[i])}`).join("<br>")}</td>
-    <td class="mono">${short(ev.transactionHash)}</td></tr>`).join("") || `<tr><td colspan="4">No events yet</td></tr>`;
+  if (!state.deployment || !readProvider()) return;
+  try {
+    const c = readContract();
+    const events = await c.queryFilter("*", state.deployment.blockNumber || 0, "latest");
+    const fmt = (v) =>
+      typeof v === "string" && v.length === 42 ? `${short(v)}${label(v)}` :
+      typeof v === "string" && v.length === 66 ? short(v) : String(v);
+    $("logBody").innerHTML = events.reverse().map((ev) => `
+      <tr><td>${ev.blockNumber}</td><td><b>${ev.eventName}</b></td>
+      <td class="mono">${ev.fragment.inputs.map((inp, i) => `${inp.name}=${fmt(ev.args[i])}`).join("<br>")}</td>
+      <td class="mono">${short(ev.transactionHash)}</td></tr>`).join("") || `<tr><td colspan="4">No events yet</td></tr>`;
+  } catch (e) {
+    $("logBody").innerHTML = `<tr><td colspan="4">Could not load events: ${explain(e)}</td></tr>`;
+  }
+}
+
+function refreshAll() {
+  refreshRoles();
+  refreshLog();
+}
+
+// ---------- Wallet modes ----------
+function applyModeUI() {
+  const mm = state.mode === "metamask";
+  $("btnConnect").hidden = !mm || !!state.mmSigner;
+  $("issuerLocal").hidden = mm;
+  $("issuerMM").hidden = !mm;
+  $("issuerMM").textContent = state.mmAddress ? `Signing as ${state.mmAddress} (MetaMask)` : "Connect MetaMask to sign as your institution wallet.";
+  $("walletStatus").textContent = mm
+    ? state.mmAddress ? `Connected: ${state.mmAddress}` : "Not connected"
+    : `Using Hardhat dev accounts on ${LOCAL_RPC}`;
+}
+
+async function setMode(mode) {
+  state.mode = mode;
+  $("modeLocal").checked = mode === "local";
+  $("modeMM").checked = mode === "metamask";
+  applyModeUI();
+  refreshAll();
+}
+$("modeLocal").onchange = () => setMode("local");
+$("modeMM").onchange = () => setMode("metamask");
+
+async function ensureChain() {
+  const want = state.deployment.chainId;
+  const net = await state.mmProvider.getNetwork();
+  if (Number(net.chainId) === want) return;
+  const hex = "0x" + want.toString(16);
+  try {
+    await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: hex }] });
+  } catch (e) {
+    if (e.code === 4902 && want === LOCAL_CHAIN_ID) {
+      await window.ethereum.request({
+        method: "wallet_addEthereumChain",
+        params: [{ chainId: hex, chainName: "Hardhat Local", rpcUrls: [LOCAL_RPC], nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 } }],
+      });
+    } else {
+      throw e;
+    }
+  }
+  state.mmProvider = new ethers.BrowserProvider(window.ethereum);
+}
+
+async function connectMetaMask() {
+  if (!window.ethereum) {
+    $("walletStatus").textContent = "MetaMask was not detected in this browser.";
+    return;
+  }
+  try {
+    state.mmProvider = new ethers.BrowserProvider(window.ethereum);
+    await state.mmProvider.send("eth_requestAccounts", []);
+    await ensureChain();
+    state.mmSigner = await state.mmProvider.getSigner();
+    state.mmAddress = await state.mmSigner.getAddress();
+    state.names[state.mmAddress] = state.names[state.mmAddress] || "You";
+  } catch (e) {
+    $("walletStatus").innerHTML = explain(e);
+    return;
+  }
+  applyModeUI();
+  refreshAll();
+}
+$("btnConnect").onclick = connectMetaMask;
+if (window.ethereum) {
+  window.ethereum.on?.("accountsChanged", () => { state.mmSigner = null; state.mmAddress = null; if (state.mode === "metamask") connectMetaMask(); });
+  window.ethereum.on?.("chainChanged", () => location.reload());
 }
 
 // ---------- Init ----------
-async function waitForContract() {
+async function loadDeployment() {
   for (;;) {
     try {
-      deployment = await (await fetch("deployment.json", { cache: "no-store" })).json();
-      if ((await provider.getCode(deployment.address)) !== "0x") return;
-      $("netInfo").innerHTML = `<span class="err">No contract on this chain yet — run \`npm run deploy:local\` (waiting…)</span>`;
-    } catch (e) {
-      $("netInfo").innerHTML = `<span class="err">Waiting for blockchain / deployment: ${reason(e)}</span>`;
-    }
-    await new Promise((r) => setTimeout(r, 2000));
+      const res = await fetch("deployment.json", { cache: "no-store" });
+      if (res.ok) return await res.json();
+      $("netInfo").innerHTML = `<span class="err">No deployment yet — run \`npm run deploy:local\` (waiting…)</span>`;
+    } catch {}
+    await sleep(2000);
   }
 }
 
 (async () => {
-  provider = new ethers.JsonRpcProvider(RPC);
-  // Fill in the role wallets first so the dropdown is never empty.
-  for (;;) {
-    try { accounts = (await provider.send("eth_accounts", [])).map((a) => ethers.getAddress(a)); break; }
-    catch (e) { $("netInfo").innerHTML = `<span class="err">Blockchain not reachable — run \`npm run node\` (retrying…)</span>`; await new Promise((r) => setTimeout(r, 2000)); }
-  }
-  names = { [accounts[0]]: "Admin", [accounts[1]]: "University", [accounts[2]]: "Verifier", [accounts[3]]: "Unauthorized wallet" };
-  $("adminAddr").textContent = accounts[ROLES.admin];
-  $("verifierAddr").textContent = accounts[ROLES.verifier];
-  $("issuerInput").value = accounts[ROLES.university];
-  $("issuerAs").innerHTML = `
-    <option value="${ROLES.university}">University — ${accounts[ROLES.university]}</option>
-    <option value="${ROLES.attacker}">Unauthorized wallet — ${accounts[ROLES.attacker]}</option>`;
-  $("issuerAs").value = String(ROLES.university);
+  state.deployment = await loadDeployment();
+  state.iface = new ethers.Interface(state.deployment.abi);
+  const isLocal = state.deployment.chainId === LOCAL_CHAIN_ID;
+  $("netInfo").textContent = `${state.deployment.network} · chainId ${state.deployment.chainId} · contract ${state.deployment.address}`;
 
-  await waitForContract();
-  const net = await provider.getNetwork();
-  $("netInfo").textContent = `chainId ${net.chainId} · contract ${deployment.address}`;
-  refreshLog();
+  if (!isLocal) {
+    // Public network: there are no unlocked accounts, so MetaMask is required.
+    $("modeLocal").disabled = true;
+    await setMode("metamask");
+    return;
+  }
+
+  state.localProvider = new ethers.JsonRpcProvider(LOCAL_RPC);
+  for (;;) {
+    try {
+      state.localAccounts = (await state.localProvider.send("eth_accounts", [])).map((a) => ethers.getAddress(a));
+      if ((await state.localProvider.getCode(state.deployment.address)) !== "0x") break;
+      $("netInfo").innerHTML = `<span class="err">No contract on this chain yet — run \`npm run deploy:local\` (waiting…)</span>`;
+      state.deployment = await loadDeployment();
+    } catch {
+      $("netInfo").innerHTML = `<span class="err">Blockchain not reachable — run \`npm run node\` (retrying…)</span>`;
+    }
+    await sleep(2000);
+  }
+  $("netInfo").textContent = `${state.deployment.network} · chainId ${state.deployment.chainId} · contract ${state.deployment.address}`;
+
+  const a = state.localAccounts;
+  state.names = { [a[1]]: "University", [a[2]]: "Verifier", [a[3]]: "Unauthorized wallet" };
+  $("issuerInput").value = a[LOCAL_ROLES.university];
+  $("issuerAs").innerHTML = `
+    <option value="${LOCAL_ROLES.university}">University — ${a[LOCAL_ROLES.university]}</option>
+    <option value="${LOCAL_ROLES.attacker}">Unauthorized wallet — ${a[LOCAL_ROLES.attacker]}</option>`;
+  $("issuerAs").value = String(LOCAL_ROLES.university);
+  await setMode("local");
 })();
 </script>
 </body>

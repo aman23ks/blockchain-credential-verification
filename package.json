@@ -1,17 +1,20 @@
 {
   "name": "blockchain-credential-verification",
   "version": "1.0.0",
-  "description": "Draft smart contract design for blockchain-based academic credential verification.",
+  "description": "Blockchain-based academic credential verification: an Ethereum smart contract registry of credential hashes with a web client for admins, issuers and verifiers.",
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",
+    "coverage": "hardhat coverage",
     "node": "hardhat node",
     "deploy:local": "hardhat run scripts/deploy.js --network localhost",
+    "deploy:sepolia": "hardhat run scripts/deploy.js --network sepolia",
     "demo": "hardhat run scripts/demo.js",
     "frontend": "node scripts/serve-frontend.js"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "hardhat": "^2.22.0"
-  }
+  },
+  "license": "MIT"
 }
